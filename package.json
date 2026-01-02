@@ -1,0 +1,40 @@
+{
+  "name": "expo-stallion-plugin",
+  "version": "1.0.0",
+  "description": "Expo Config Plugin for react-native-stallion - automatically configures Stallion as the JS bundle provider",
+  "main": "build/index.js",
+  "types": "build/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "expo",
+    "expo-plugin",
+    "react-native",
+    "stallion",
+    "bundle",
+    "ota"
+  ],
+  "author": "",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "peerDependencies": {
+    "expo": ">=47.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "@expo/config-plugins": "^7.0.0"
+  },
+  "files": [
+    "build",
+    "app.plugin.js"
+  ],
+  "packageManager": "yarn@3.6.4+sha512.e70835d4d6d62c07be76b3c1529cb640c7443f0fe434ef4b6478a5a399218cbaf1511b396b3c56eb03bc86424cff2320f6167ad2fde273aa0df6e60b7754029f"
+}
