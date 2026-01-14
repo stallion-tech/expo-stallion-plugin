@@ -1,0 +1,43 @@
+name: Release CLI Pipeline
+on:
+  push:
+    branches:
+      - main
+      - alpha
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    permissions: write-all
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "22.x"
+          cache: "npm"
+
+      - name: Setup git user
+        run: |
+          git config --global user.name "${{ secrets.GH_DEPLOY_NAME }}"
+          git config --global user.email "${{ secrets.GH_DEPLOY_EMAIL }}"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Release package
+        run: npx semantic-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          GIT_AUTHOR_EMAIL: ${{ secrets.GH_DEPLOY_EMAIL }}
+          GIT_AUTHOR_NAME: ${{ secrets.GH_DEPLOY_NAME }}
+          GIT_COMMITTER_EMAIL: ${{ secrets.GH_DEPLOY_EMAIL }}
+          GIT_COMMITTER_NAME: ${{ secrets.GH_DEPLOY_NAME }}
