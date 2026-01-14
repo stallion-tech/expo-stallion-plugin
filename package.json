@@ -20,14 +20,17 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": ""
+    "url": "https://github.com/stallion-tech/expo-stallion-plugin"
   },
   "peerDependencies": {
     "expo": ">=47.0.0"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "@semantic-release/changelog": "^6.0.0",
+    "@semantic-release/git": "^10.0.0",
+    "semantic-release": "19.0.3"
   },
   "dependencies": {
     "@expo/config-plugins": "^7.0.0"
@@ -35,5 +38,31 @@
   "files": [
     "build",
     "app.plugin.js"
-  ]
+  ],
+  "release": {
+    "branches": [
+      "main",
+      {
+        "name": "alpha",
+        "prerelease": true
+      }
+    ],
+    "plugins": [
+      "@semantic-release/commit-analyzer",
+      "@semantic-release/release-notes-generator",
+      "@semantic-release/changelog",
+      "@semantic-release/npm",
+      "@semantic-release/github",
+      [
+        "@semantic-release/git",
+        {
+          "assets": [
+            "CHANGELOG.md",
+            "package.json"
+          ],
+          "message": "chore(release): ${nextRelease.version}"
+        }
+      ]
+    ]
+  }
 }
