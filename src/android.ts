@@ -35,9 +35,10 @@ const withStallionCredentials = (
 /**
  * Patches MainApplication to use Stallion as JS bundle provider
  * Supports:
+ * - Expo ReactNativeHostWrapper (RN 0.82+ with Expo)
  * - Java MainApplication (RN 0.71-0.81)
  * - Kotlin MainApplication (RN 0.71-0.81)
- * - ReactHost (RN 0.82+)
+ * - ReactHost (RN 0.82+ non-Expo)
  */
 const withStallionBundleProvider = (
   config: ExpoConfig,
@@ -46,24 +47,40 @@ const withStallionBundleProvider = (
   return withMainApplication(config, (config) => {
     const mainApplication = config.modResults.contents;
 
-    // Check if already patched
-    if (mainApplication.includes("Stallion.getJSBundleFile")) {
+    // Check if already patched with DEBUG/RELEASE pattern
+    if (
+      mainApplication.includes("Stallion.getJSBundleFile") &&
+      mainApplication.includes("BuildConfig.DEBUG")
+    ) {
       return config;
     }
 
     // Detect React Native version and host style
+    // Check for Expo's ReactNativeHostWrapper pattern first
+    const isExpoReactHost =
+      mainApplication.includes("ReactNativeHostWrapper") &&
+      mainApplication.includes("DefaultReactNativeHost") &&
+      mainApplication.includes("getJSMainModuleName");
+
     const isReactHost =
-      mainApplication.includes("ReactHost") ||
-      mainApplication.includes("getDefaultReactHost");
+      (mainApplication.includes("ReactHost") ||
+        mainApplication.includes("getDefaultReactHost")) &&
+      !isExpoReactHost;
+
     const isKotlin =
       mainApplication.includes("class MainApplication") &&
-      mainApplication.includes("override fun");
+      mainApplication.includes("override fun") &&
+      !isExpoReactHost;
     const isJava =
       mainApplication.includes("class MainApplication") &&
-      !mainApplication.includes("override fun");
+      !mainApplication.includes("override fun") &&
+      !isExpoReactHost;
 
-    if (isReactHost) {
-      // RN 0.82+ with ReactHost
+    if (isExpoReactHost) {
+      // Expo's ReactNativeHostWrapper with DefaultReactNativeHost
+      config.modResults.contents = patchExpoReactHost(mainApplication);
+    } else if (isReactHost) {
+      // RN 0.82+ with ReactHost (non-Expo)
       config.modResults.contents = patchReactHost(mainApplication);
     } else if (isKotlin) {
       // Kotlin MainApplication (RN 0.71-0.81)
@@ -130,6 +147,70 @@ function addStallionImport(contents: string, isKotlin: boolean): string {
 }
 
 /**
+ * Patches Expo's ReactNativeHostWrapper pattern (RN 0.82+ with Expo)
+ */
+function patchExpoReactHost(contents: string): string {
+  // Add import first
+  contents = addStallionImport(contents, true);
+
+  // Check if already patched with DEBUG/RELEASE pattern
+  if (
+    contents.includes("getJSBundleFile") &&
+    contents.includes("BuildConfig.DEBUG") &&
+    contents.includes("Stallion.getJSBundleFile")
+  ) {
+    return contents;
+  }
+
+  // Find getJSMainModuleName() and add getJSBundleFile() after it
+  // This should be inside the DefaultReactNativeHost object
+  const jsMainModulePattern =
+    /(override\s+fun\s+getJSMainModuleName\(\)[^\n]+\n)/;
+
+  if (jsMainModulePattern.test(contents)) {
+    // Add getJSBundleFile() after getJSMainModuleName()
+    return contents.replace(
+      jsMainModulePattern,
+      `$1
+          override fun getJSBundleFile(): String? {
+            return if (BuildConfig.DEBUG) {
+              null
+            } else {
+              Stallion.getJSBundleFile(applicationContext)
+            }
+          }
+
+          `
+    );
+  } else {
+    // Fallback: try to find DefaultReactNativeHost object and add inside it
+    const defaultHostMatch = contents.match(
+      /(object\s*:\s*DefaultReactNativeHost\([^)]+\)\s*\{)/
+    );
+    if (defaultHostMatch && defaultHostMatch.index !== undefined) {
+      const insertPos = defaultHostMatch.index + defaultHostMatch[0].length;
+      const before = contents.substring(0, insertPos);
+      const after = contents.substring(insertPos);
+      return (
+        before +
+        `
+          override fun getJSBundleFile(): String? {
+            return if (BuildConfig.DEBUG) {
+              null
+            } else {
+              Stallion.getJSBundleFile(applicationContext)
+            }
+          }
+` +
+        after
+      );
+    }
+  }
+
+  return contents;
+}
+
+/**
  * Patches ReactHost (RN 0.82+) to use Stallion bundle path
  */
 function patchReactHost(contents: string): string {
@@ -146,17 +227,17 @@ function patchReactHost(contents: string): string {
     // Match: jsBundleFilePath = <anything> or jsBundleFilePath: <anything>
     return contents.replace(
       /(jsBundleFilePath\s*[:=]\s*)([^,\n)]+)/,
-      "$1Stallion.getJSBundleFile(applicationContext)"
+      "$1if (BuildConfig.DEBUG) null else Stallion.getJSBundleFile(applicationContext)"
     );
   } else {
     // Add jsBundleFilePath parameter to getDefaultReactHost call
     // Handle both Kotlin (named parameter) and potential other formats
     const kotlinPattern = /getDefaultReactHost\s*\(/;
     if (kotlinPattern.test(contents)) {
-      // For Kotlin, add as named parameter
+      // For Kotlin, add as named parameter with DEBUG/RELEASE logic
       return contents.replace(
         kotlinPattern,
-        "getDefaultReactHost(\n      jsBundleFilePath = Stallion.getJSBundleFile(applicationContext),"
+        "getDefaultReactHost(\n      jsBundleFilePath = if (BuildConfig.DEBUG) null else Stallion.getJSBundleFile(applicationContext),"
       );
     } else {
       // Fallback: try to find ReactHost creation pattern
@@ -164,7 +245,7 @@ function patchReactHost(contents: string): string {
       if (reactHostCreation) {
         return contents.replace(
           /(ReactHost\s*\()/,
-          "$1jsBundleFilePath = Stallion.getJSBundleFile(applicationContext), "
+          "$1jsBundleFilePath = if (BuildConfig.DEBUG) null else Stallion.getJSBundleFile(applicationContext), "
         );
       }
     }
@@ -180,13 +261,26 @@ function patchKotlinMainApplication(contents: string): string {
   // Add import first
   contents = addStallionImport(contents, true);
 
-  // Check if getJSBundleFile already exists
+  // Check if getJSBundleFile already exists with DEBUG/RELEASE pattern
+  if (
+    contents.includes("override fun getJSBundleFile") &&
+    contents.includes("BuildConfig.DEBUG") &&
+    contents.includes("Stallion.getJSBundleFile")
+  ) {
+    return contents; // Already patched correctly
+  }
+
+  // Check if getJSBundleFile already exists (old pattern)
   if (contents.includes("override fun getJSBundleFile")) {
-    // Replace existing implementation
+    // Replace existing implementation with DEBUG/RELEASE logic
     return contents.replace(
-      /override\s+fun\s+getJSBundleFile\(\)\s*:\s*String\?[^{]*\{[^}]*\}/,
+      /override\s+fun\s+getJSBundleFile\(\)\s*:\s*String\?[^{]*\{[\s\S]*?\n\s*\}/,
       `override fun getJSBundleFile(): String? {
-    return Stallion.getJSBundleFile(applicationContext)
+    return if (BuildConfig.DEBUG) {
+      null
+    } else {
+      Stallion.getJSBundleFile(applicationContext)
+    }
   }`
     );
   } else {
@@ -199,7 +293,11 @@ function patchKotlinMainApplication(contents: string): string {
       return (
         beforeOnCreate +
         `  override fun getJSBundleFile(): String? {
-    return Stallion.getJSBundleFile(applicationContext)
+    return if (BuildConfig.DEBUG) {
+      null
+    } else {
+      Stallion.getJSBundleFile(applicationContext)
+    }
   }
 
   ` +
@@ -210,7 +308,11 @@ function patchKotlinMainApplication(contents: string): string {
       return contents.replace(
         /(\s+)(override\s+fun\s+onCreate|})/,
         `$1override fun getJSBundleFile(): String? {
-$1  return Stallion.getJSBundleFile(applicationContext)
+$1  return if (BuildConfig.DEBUG) {
+$1    null
+$1  } else {
+$1    Stallion.getJSBundleFile(applicationContext, "assets://index.bundle")
+$1  }
 $1}
 
 $1$2`
@@ -226,14 +328,28 @@ function patchJavaMainApplication(contents: string): string {
   // Add import first
   contents = addStallionImport(contents, false);
 
-  // Check if getJSBundleFile already exists
+  // Check if getJSBundleFile already exists with DEBUG/RELEASE pattern
+  if (
+    contents.includes("@Override") &&
+    contents.includes("getJSBundleFile") &&
+    contents.includes("BuildConfig.DEBUG") &&
+    contents.includes("Stallion.getJSBundleFile")
+  ) {
+    return contents; // Already patched correctly
+  }
+
+  // Check if getJSBundleFile already exists (old pattern)
   if (contents.includes("@Override") && contents.includes("getJSBundleFile")) {
-    // Replace existing implementation
+    // Replace existing implementation with DEBUG/RELEASE logic
     return contents.replace(
-      /@Override\s+protected\s+String\s+getJSBundleFile\(\)\s*\{[^}]*\}/,
+      /@Override\s+protected\s+String\s+getJSBundleFile\(\)\s*\{[\s\S]*?\n\s*\}/,
       `@Override
   protected String getJSBundleFile() {
-    return Stallion.getJSBundleFile(getApplicationContext());
+    if (BuildConfig.DEBUG) {
+      return null;
+    } else {
+      return Stallion.getJSBundleFile(getApplicationContext());
+    }
   }`
     );
   } else {
@@ -249,7 +365,11 @@ function patchJavaMainApplication(contents: string): string {
         beforeOnCreate +
         `  @Override
   protected String getJSBundleFile() {
-    return Stallion.getJSBundleFile(getApplicationContext());
+    if (BuildConfig.DEBUG) {
+      return null;
+    } else {
+      return Stallion.getJSBundleFile(getApplicationContext());
+    }
   }
 
   ` +
@@ -261,7 +381,11 @@ function patchJavaMainApplication(contents: string): string {
         /(\s+)(@Override\s+protected\s+void\s+onCreate|})/,
         `$1@Override
 $1protected String getJSBundleFile() {
-$1  return Stallion.getJSBundleFile(getApplicationContext());
+$1  if (BuildConfig.DEBUG) {
+$1    return null;
+$1  } else {
+$1    return Stallion.getJSBundleFile(getApplicationContext(), "assets://index.bundle");
+$1  }
 $1}
 
 $1$2`
