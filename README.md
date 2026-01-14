@@ -1,6 +1,7 @@
 # expo-stallion-plugin
 [![npm Version](https://img.shields.io/npm/v/expo-stallion-plugin.svg)](https://www.npmjs.com/package/expo-stallion-plugin)  
 [![License](https://img.shields.io/npm/l/expo-stallion-plugin.svg)](https://www.npmjs.com/package/expo-stallion-plugin)
+
 Seamlessly integrate over-the-air (OTA) updates into your Expo apps with [Stallion](https://stalliontech.io/). This config plugin automatically sets up Stallion as your JavaScript bundle provider, so you can push updates to your users without going through the app stores.
 
 Perfect for teams using **Expo EAS Build** who want a reliable OTA update solution that works alongside their existing workflow. No manual native code changes required—just install, configure, and start shipping updates.
