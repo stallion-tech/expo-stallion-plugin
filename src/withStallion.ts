@@ -11,13 +11,19 @@ export interface StallionPluginProps {
  * Main plugin function that applies Stallion configuration to both Android and iOS
  */
 export const withStallion: ConfigPlugin<StallionPluginProps> = (config, props) => {
-  // Validate required props
-  if (!props.projectId) {
-    throw new Error('expo-stallion-plugin: projectId is required');
+  // If required props are missing, skip plugin gracefully.
+  // This allows commands like `eas env:pull` to work before
+  // environment variables have been pulled down.
+  if (!props.projectId || !props.appToken) {
+    console.warn(
+      'expo-stallion-plugin: projectId and appToken are not set — skipping native configuration. ' +
+      'This is expected during commands like `eas env:pull`. ' +
+      'Make sure these values are set before running a build.'
+    );
+    return config;
   }
-  if (!props.appToken) {
-    throw new Error('expo-stallion-plugin: appToken is required');
-  }
+
+  // Validate prop format (only when values are actually provided)
   if (!props.appToken.startsWith('spb_')) {
     throw new Error('expo-stallion-plugin: appToken must start with "spb_"');
   }
