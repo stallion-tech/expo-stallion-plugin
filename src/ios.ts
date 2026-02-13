@@ -16,6 +16,9 @@ const withStallionCredentials = (
   return withInfoPlist(config, (config) => {
     config.modResults.StallionProjectId = props.projectId;
     config.modResults.StallionAppToken = props.appToken;
+    if (props.publicSigningKey) {
+      config.modResults.StallionPublicSigningKey = props.publicSigningKey;
+    }
     return config;
   });
 };

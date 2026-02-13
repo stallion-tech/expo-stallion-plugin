@@ -5,6 +5,7 @@ import { withStallionIOS } from './ios';
 export interface StallionPluginProps {
   projectId: string;
   appToken: string;
+  publicSigningKey?: string;
 }
 
 /**
