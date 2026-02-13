@@ -1,3 +1,10 @@
+## [1.0.1](https://github.com/stallion-tech/expo-stallion-plugin/compare/v1.0.0...v1.0.1) (2026-02-13)
+
+
+### Bug Fixes
+
+* bundle signing key support added ([#5](https://github.com/stallion-tech/expo-stallion-plugin/issues/5)) ([18c434a](https://github.com/stallion-tech/expo-stallion-plugin/commit/18c434a46f12efad29d790a91cf1b8ed8944e762))
+
 # 1.0.0 (2026-01-14)
 
 
