@@ -26,6 +26,7 @@ import { withStallion } from './withStallion';
 const withExpoStallion: ConfigPlugin<{
   projectId: string;
   appToken: string;
+  publicSigningKey?: string;
 }> = (config, props) => {
   return withStallion(config, props);
 };

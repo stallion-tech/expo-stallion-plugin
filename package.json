@@ -1,6 +1,6 @@
 {
   "name": "expo-stallion-plugin",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Expo Config Plugin for react-native-stallion - automatically configures Stallion as the JS bundle provider",
   "main": "build/index.js",
   "types": "build/index.d.ts",

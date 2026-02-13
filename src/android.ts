@@ -15,17 +15,28 @@ const withStallionCredentials = (
   props: StallionPluginProps
 ) => {
   return withStringsXml(config, (config) => {
+    const items = [
+      AndroidConfig.Resources.buildResourceItem({
+        name: "StallionProjectId",
+        value: props.projectId,
+      }),
+      AndroidConfig.Resources.buildResourceItem({
+        name: "StallionAppToken",
+        value: props.appToken,
+      }),
+    ];
+
+    if (props.publicSigningKey) {
+      items.push(
+        AndroidConfig.Resources.buildResourceItem({
+          name: "StallionPublicSigningKey",
+          value: props.publicSigningKey,
+        })
+      );
+    }
+
     config.modResults = AndroidConfig.Strings.setStringItem(
-      [
-        AndroidConfig.Resources.buildResourceItem({
-          name: "StallionProjectId",
-          value: props.projectId,
-        }),
-        AndroidConfig.Resources.buildResourceItem({
-          name: "StallionAppToken",
-          value: props.appToken,
-        }),
-      ],
+      items,
       config.modResults
     );
     return config;
