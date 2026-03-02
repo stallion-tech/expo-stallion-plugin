@@ -1,3 +1,10 @@
+## [1.0.2](https://github.com/stallion-tech/expo-stallion-plugin/compare/v1.0.1...v1.0.2) (2026-03-02)
+
+
+### Bug Fixes
+
+* make tokens validation less strict ([#4](https://github.com/stallion-tech/expo-stallion-plugin/issues/4)) ([ada3c6d](https://github.com/stallion-tech/expo-stallion-plugin/commit/ada3c6de93e5f5ecf8fa9e81fc98be42318e4590))
+
 ## [1.0.1](https://github.com/stallion-tech/expo-stallion-plugin/compare/v1.0.0...v1.0.1) (2026-02-13)
 
 
