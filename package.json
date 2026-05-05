@@ -23,7 +23,8 @@
     "url": "https://github.com/stallion-tech/expo-stallion-plugin"
   },
   "peerDependencies": {
-    "expo": ">=47.0.0"
+    "expo": ">=47.0.0",
+    "@expo/config-plugins": ">=7.0.0"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
@@ -31,9 +32,6 @@
     "@semantic-release/changelog": "^6.0.0",
     "@semantic-release/git": "^10.0.0",
     "semantic-release": "19.0.3"
-  },
-  "dependencies": {
-    "@expo/config-plugins": "^7.0.0"
   },
   "files": [
     "build",
