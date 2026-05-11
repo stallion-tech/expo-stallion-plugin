@@ -1,3 +1,10 @@
+## [1.0.3](https://github.com/stallion-tech/expo-stallion-plugin/compare/v1.0.2...v1.0.3) (2026-05-11)
+
+
+### Bug Fixes
+
+* expo duplicate dependency issue fixed ([794b90e](https://github.com/stallion-tech/expo-stallion-plugin/commit/794b90e365703d05842727caa43320fb0a392e8c))
+
 ## [1.0.2](https://github.com/stallion-tech/expo-stallion-plugin/compare/v1.0.1...v1.0.2) (2026-03-02)
 
 
