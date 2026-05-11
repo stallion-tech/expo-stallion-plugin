@@ -2,7 +2,7 @@ import { ConfigPlugin } from '@expo/config-plugins';
 import { withStallion } from './withStallion';
 
 /**
- * Expo Config Plugin for react-native-stallion
+ * Expo config plugin for react-native-stallion
  * 
  * Automatically configures Stallion as the JS bundle provider for Expo apps.
  * 
