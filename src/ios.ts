@@ -223,11 +223,10 @@ function addStallionObjCImports(contents: string): string {
       const insertPos = lastImportIndex + lastImport.length;
       contents =
         contents.substring(0, insertPos) +
-        "#import <react_native_stallion/StallionModule.h>\n" +
+        '#import "StallionModule.h"\n' +
         contents.substring(insertPos);
     } else {
-      contents =
-        "#import <react_native_stallion/StallionModule.h>\n" + contents;
+      contents = '#import "StallionModule.h"\n' + contents;
     }
   }
 
