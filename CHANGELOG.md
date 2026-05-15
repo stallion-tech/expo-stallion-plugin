@@ -1,3 +1,10 @@
+## [1.0.4](https://github.com/stallion-tech/expo-stallion-plugin/compare/v1.0.3...v1.0.4) (2026-05-15)
+
+
+### Bug Fixes
+
+* fixed import react_native_stallion issue on rn 0.83+ ([#9](https://github.com/stallion-tech/expo-stallion-plugin/issues/9)) ([7182c73](https://github.com/stallion-tech/expo-stallion-plugin/commit/7182c73804c8cad5201be5b981a1dbcb295ef90d))
+
 ## [1.0.3](https://github.com/stallion-tech/expo-stallion-plugin/compare/v1.0.2...v1.0.3) (2026-05-11)
 
 
