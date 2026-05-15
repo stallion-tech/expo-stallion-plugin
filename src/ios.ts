@@ -82,41 +82,77 @@ const withStallionBundleProvider = (
 };
 
 /**
+ * Finds a safe position to insert a new top-level import in a Swift file.
+ *
+ * Returns the offset immediately after the last top-level import that is
+ * NOT inside an `#if`/`#endif` conditional block and NOT inside an
+ * `// @generated begin ... // @generated end` block. Scanning stops at the
+ * first top-level `@main` / class / struct / enum / protocol / extension
+ * declaration so we never insert below it (which would break `@main`).
+ *
+ * Falls back to position 0 if no safe top-level import is found.
+ */
+function findSwiftImportInsertPosition(contents: string): number {
+  const lines = contents.split("\n");
+  const importLine =
+    /^((@\w+(\([^)]*\))?|public|private|internal|fileprivate|open)\s+)*import\s+\S/;
+  const stopLine =
+    /^(@main\b|class\s|struct\s|enum\s|protocol\s|extension\s|actor\s)/;
+
+  let conditionalDepth = 0;
+  let inGenerated = false;
+  let lastSafeInsertPos = -1;
+  let pos = 0;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+    const isLast = i === lines.length - 1;
+    const afterLinePos = pos + line.length + (isLast ? 0 : 1);
+
+    if (trimmed.startsWith("// @generated begin")) {
+      inGenerated = true;
+    } else if (trimmed.startsWith("// @generated end")) {
+      inGenerated = false;
+    } else if (/^#if\b/.test(trimmed)) {
+      conditionalDepth++;
+    } else if (/^#endif\b/.test(trimmed)) {
+      conditionalDepth = Math.max(0, conditionalDepth - 1);
+    } else {
+      const insideBlock = inGenerated || conditionalDepth > 0;
+      if (!insideBlock && stopLine.test(trimmed)) {
+        break;
+      }
+      if (!insideBlock && importLine.test(trimmed)) {
+        lastSafeInsertPos = afterLinePos;
+      }
+    }
+
+    pos = afterLinePos;
+  }
+
+  return lastSafeInsertPos >= 0 ? lastSafeInsertPos : 0;
+}
+
+/**
  * Adds required imports to Swift AppDelegate
  */
 function addStallionSwiftImports(contents: string): string {
-  // Add react_native_stallion import if missing
   if (!contents.includes("import react_native_stallion")) {
-    const importPattern = /(import\s+[^\n]+\n)/g;
-    const imports = contents.match(importPattern);
-    if (imports && imports.length > 0) {
-      const lastImport = imports[imports.length - 1];
-      const lastImportIndex = contents.lastIndexOf(lastImport);
-      const insertPos = lastImportIndex + lastImport.length;
-      contents =
-        contents.substring(0, insertPos) +
-        "import react_native_stallion\n" +
-        contents.substring(insertPos);
-    } else {
-      contents = "import react_native_stallion\n" + contents;
-    }
+    const insertPos = findSwiftImportInsertPosition(contents);
+    contents =
+      contents.substring(0, insertPos) +
+      "import react_native_stallion\n" +
+      contents.substring(insertPos);
   }
 
-  // Add React import if missing (needed for RCTBundleURLProvider)
+  // React is needed for RCTBundleURLProvider in the bundleURL override
   if (!contents.includes("import React")) {
-    const importPattern = /(import\s+[^\n]+\n)/g;
-    const imports = contents.match(importPattern);
-    if (imports && imports.length > 0) {
-      const lastImport = imports[imports.length - 1];
-      const lastImportIndex = contents.lastIndexOf(lastImport);
-      const insertPos = lastImportIndex + lastImport.length;
-      contents =
-        contents.substring(0, insertPos) +
-        "import React\n" +
-        contents.substring(insertPos);
-    } else {
-      contents = "import React\n" + contents;
-    }
+    const insertPos = findSwiftImportInsertPosition(contents);
+    contents =
+      contents.substring(0, insertPos) +
+      "import React\n" +
+      contents.substring(insertPos);
   }
 
   return contents;
@@ -154,21 +190,16 @@ function patchSwiftAppDelegate(contents: string): string {
       return contents.replace(methodPattern, targetImplementation);
     }
   } else {
-    // Add new bundleURL method
-    // Try to find a good insertion point (after class declaration, before other methods)
-    const classMatch = contents.match(/(class\s+\w+AppDelegate[^{]*\{)/);
+    // Add new bundleURL method right after the class opening brace.
+    // \w* (not \w+) so SDK 55's bare `class AppDelegate` is matched in
+    // addition to prefixed names like `RNAppDelegate` or `FooAppDelegate`.
+    const classPattern = /(class\s+\w*AppDelegate\b[^{]*\{)/;
+    const classMatch = contents.match(classPattern);
     if (classMatch && classMatch.index !== undefined) {
       const insertPos = classMatch.index + classMatch[0].length;
       const before = contents.substring(0, insertPos);
       const after = contents.substring(insertPos);
       return before + "\n  " + targetImplementation + "\n" + after;
-    } else {
-      // Fallback: add at the beginning of the class body
-      return contents.replace(
-        /(class\s+\w+AppDelegate[^{]*\{)/,
-        `$1
-  ${targetImplementation}`
-      );
     }
   }
 
@@ -192,11 +223,10 @@ function addStallionObjCImports(contents: string): string {
       const insertPos = lastImportIndex + lastImport.length;
       contents =
         contents.substring(0, insertPos) +
-        "#import <react_native_stallion/StallionModule.h>\n" +
+        '#import "StallionModule.h"\n' +
         contents.substring(insertPos);
     } else {
-      contents =
-        "#import <react_native_stallion/StallionModule.h>\n" + contents;
+      contents = '#import "StallionModule.h"\n' + contents;
     }
   }
 
