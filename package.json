@@ -26,12 +26,19 @@
     "expo": ">=47.0.0",
     "@expo/config-plugins": ">=5.0.0"
   },
+  "peerDependenciesMeta": {
+    "expo": {
+      "optional": true
+    }
+  },
   "devDependencies": {
     "@types/node": "^20.0.0",
+    "@expo/config-plugins": "^57.0.9",
+    "@expo/config-types": "^57.0.2",
     "typescript": "^5.0.0",
-    "@semantic-release/changelog": "^6.0.0",
-    "@semantic-release/git": "^10.0.0",
-    "semantic-release": "19.0.3"
+    "@semantic-release/changelog": "^7.0.0",
+    "@semantic-release/git": "^11.0.1",
+    "semantic-release": "^25.0.9"
   },
   "files": [
     "build",
